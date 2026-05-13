@@ -9,25 +9,25 @@
 #define RST_PIN 9
 #define SERVO_PIN 8
 
-// ---------------- OBJECTS ----------------
+//  OBJECTS 
 MFRC522 rfid(SS_PIN, RST_PIN);
 Servo lockServo;
 
-// ---------------- STATE ----------------
+//  STATE 
 bool stateLocked = true;
 bool adminMode = false;
 
-// ---------------- ADMIN CARD UID ----------------
+//  ADMIN CARD UID 
 byte adminUID[4] = {0x56, 0x66, 0x09, 0xF8};
 
-// ---------------- SETTINGS ----------------
+//  SETTINGS 
 #define MAX_CARDS 10
 #define UID_SIZE 4
 
-// ---------------- WATCHDOG ----------------
+//  WATCHDOG 
 unsigned long lastRFIDCheck = 0;
 
-// ---------------- LED ----------------
+//  LED 
 int colorOut(int r, int g, int b) {
   analogWrite(14, b);
   analogWrite(15, g);
@@ -35,18 +35,18 @@ int colorOut(int r, int g, int b) {
   return 0;
 }
 
-// ---------------- SERVO ----------------
+//  SERVO 
 void updateLockState() {
   if (stateLocked) {
-    lockServo.write(90);    // one direction
+    lockServo.write(90);   
     colorOut(255, 0, 0);
   } else {
-    lockServo.write(180);   // 90° the OTHER direction
+    lockServo.write(180);   
     colorOut(0, 255, 0);
   }
 }
 
-// ---------------- EEPROM ----------------
+// EEPROM 
 int getCardAddress(int index) {
   return index * UID_SIZE;
 }
@@ -107,7 +107,7 @@ void deleteCard(byte *uid, byte size) {
   }
 }
 
-// ---------------- RFID ----------------
+//  RFID 
 void printUID(byte *uid, byte size) {
   Serial.print("UID: ");
   for (int i = 0; i < size; i++) {
@@ -122,7 +122,7 @@ bool isAdmin(byte *uid, byte size) {
   return compareUID(uid, adminUID, size);
 }
 
-// ---------------- ERROR BLINK ----------------
+//  ERROR BLINK 
 void errorBlink() {
   for (int i = 0; i < 3; i++) {
     colorOut(255, 0, 0);
@@ -132,7 +132,7 @@ void errorBlink() {
   }
 }
 
-// ---------------- SETUP ----------------
+//  SETUP 
 void setup() {
   Serial.begin(9600);
   SPI.begin();
@@ -149,16 +149,14 @@ void setup() {
   Serial.println("Ready.");
 }
 
-// ---------------- LOOP ----------------
+//  LOOP 
 void loop() {
   
   if (millis() - lastRFIDCheck > 5000) {
-    Serial.println("Resetting RFID...");
     rfid.PCD_Init();
     lastRFIDCheck = millis();
   }
 
-  // Wait for card
   if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
     return;
   }
@@ -170,11 +168,10 @@ void loop() {
 
   printUID(uid, size);
 
-  // ADMIN MODE ENTRY
   if (isAdmin(uid, size)) {
     adminMode = true;
     Serial.println("Admin mode: scan card to add/remove");
-    colorOut(0, 0, 255); // blue
+    colorOut(0, 0, 255); 
     delay(1000);
     
     rfid.PICC_HaltA();
@@ -182,7 +179,6 @@ void loop() {
     return;
   }
 
-  // ADMIN ACTION
   if (adminMode) {
     if (isRegistered(uid, size)) {
       deleteCard(uid, size);
@@ -198,7 +194,6 @@ void loop() {
     return;
   }
 
-  // NORMAL ACCESS
   if (isRegistered(uid, size)) {
     stateLocked = !stateLocked;
     updateLockState();
@@ -208,9 +203,9 @@ void loop() {
     errorBlink();
   }
 
-  // 🔑 Proper cleanup (VERY IMPORTANT)
+  // Cleanup 
   rfid.PICC_HaltA();
   rfid.PCD_StopCrypto1();
 
-  delay(300); // small stability delay
+  delay(300);
 }
